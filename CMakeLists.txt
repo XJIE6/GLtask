@@ -25,8 +25,9 @@ include_directories(ext/nanogui/ext/eigen)
 
 file(GLOB TASK1_SOURCES src/task1/*.cpp)
 file(GLOB TASK2_SOURCES src/task2/*.cpp)
+file(GLOB TASK3_SOURCES src/task3/*.cpp)
+#file(GLOB TASK4_SOURCES src/task4/*.cpp)
 
-#MESSAGE(${TASK1_SOURCES})
 
 include_directories(include)
 
@@ -35,13 +36,15 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -O0 -Wall -Wextra -g")
 # Compile a target using NanoGUI
 add_executable(task1 ${TASK1_SOURCES})
 add_executable(task2 ${TASK2_SOURCES})
+add_executable(task3 ${TASK3_SOURCES})
+#add_executable(task4 ${TASK4_SOURCES})
 
 # Lastly, additional libraries may have been built for you.  In addition to linking
 # against NanoGUI, we need to link against those as well.
 target_link_libraries(task1 nanogui ${NANOGUI_EXTRA_LIBS})
 target_link_libraries(task2 nanogui ${NANOGUI_EXTRA_LIBS})
 target_link_libraries(task2 assimp)
-
-#find_package(Boost COMPONENTS system filesystem REQUIRED)
-
-#target_link_libraries(app  ${Boost_FILESYSTEM_LIBRARY}  ${Boost_SYSTEM_LIBRARY})
+target_link_libraries(task3 nanogui ${NANOGUI_EXTRA_LIBS})
+target_link_libraries(task3 assimp)
+#target_link_libraries(task4 nanogui ${NANOGUI_EXTRA_LIBS})
+#target_link_libraries(task4 assimp)
