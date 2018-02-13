@@ -16,6 +16,17 @@ uniform vec3 viewPos;
 
 uniform vec3 pointLightPos;
 
+vec4 Bilinear(sampler2D tex, vec2 texCoord, int texSize)
+{
+   vec2 trTexCoord = texCoord*texSize;
+   vec2 texf = floor(trTexCoord);
+   vec2 ratio = trTexCoord - texf;
+   vec2 opposite = 1.0 - ratio;
+   vec4 result = (texture(tex, texf/texSize) * opposite.x  + texture(tex, (texf+vec2(1, 0))/texSize)   * ratio.x) * opposite.y +
+                   (texture(tex, (texf+vec2(0, 1))/texSize) * opposite.x + texture(tex, (texf+vec2(1, 1))/texSize) * ratio.x) * ratio.y;
+   return result;
+ }
+
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // perform perspective divide
@@ -32,18 +43,10 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-    // PCF
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-        }    
-    }
-    shadow /= 9.0;
+
+
+    float bilinDepth = Bilinear(shadowMap, projCoords.xy, textureSize(shadowMap, 0).x).r;
+    float shadow = currentDepth - bias > bilinDepth  ? 1.0 : 0.0;
     
     // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
     if(projCoords.z > 1.0)

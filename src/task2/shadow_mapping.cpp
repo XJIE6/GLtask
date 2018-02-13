@@ -84,7 +84,7 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float planeVertices[] = {
-        // aPoss            // normals         // texcoords
+        // Positions            // normals         // texcoords
          25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
         -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
         -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
@@ -110,7 +110,7 @@ int main()
 
     // configure depth map FBO
     // -----------------------
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 10000, SHADOW_HEIGHT = 10000;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
@@ -168,7 +168,7 @@ int main()
 		glm::mat4 lightProjection, lightView;
 		glm::mat4 lightSpaceMatrix;
 		float near_plane = 1.0f, far_plane = 7.5f;
-		//lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light aPos as the current light aPos isn't enough to reflect the whole scene
+		//lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light Position as the current light Position isn't enough to reflect the whole scene
 		lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 		lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		lightSpaceMatrix = lightProjection * lightView;
@@ -186,7 +186,7 @@ int main()
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// 2. render scene as normal using the generated depth/shadow map  
+		// 2. render scene as normal using the generated depth/shadow map
 		// --------------------------------------------------------------
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -196,7 +196,7 @@ int main()
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
 		// set light uniforms
-		shader.setVec3("viewPos", camera.aPos);
+		shader.setVec3("viewPos", camera.Position);
 		shader.setVec3("lightPos", lightPos);
 		shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 		shader.setVec3("pointLightPos", glm::vec3(glm::sin(lastFrame) * 2, 1, glm::cos(lastFrame) * 2 + 2));
@@ -269,7 +269,7 @@ void renderQuad()
     if (quadVAO == 0)
     {
         float quadVertices[] = {
-                // aPoss        // texture Coords
+                // Positions        // texture Coords
                 -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
                 -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
                 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
