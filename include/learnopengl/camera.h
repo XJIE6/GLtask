@@ -28,7 +28,7 @@ class Camera
 {
 public:
     // Camera Attributes
-    glm::vec3 aPos;
+    glm::vec3 Position;
     glm::vec3 Front;
     glm::vec3 Up;
     glm::vec3 Right;
@@ -42,9 +42,9 @@ public:
     float Zoom;
 
     // Constructor with vectors
-    Camera(glm::vec3 aPos = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
+    Camera(glm::vec3 Position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
     {
-        aPos = aPos;
+        Position = Position;
         WorldUp = up;
         Yaw = yaw;
         Pitch = pitch;
@@ -53,7 +53,7 @@ public:
     // Constructor with scalar values
     Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
     {
-        aPos = glm::vec3(posX, posY, posZ);
+        Position = glm::vec3(posX, posY, posZ);
         WorldUp = glm::vec3(upX, upY, upZ);
         Yaw = yaw;
         Pitch = pitch;
@@ -63,7 +63,7 @@ public:
     // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix()
     {
-        return glm::lookAt(aPos, aPos + Front, Up);
+        return glm::lookAt(Position, Position + Front, Up);
     }
 
     // Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -71,13 +71,13 @@ public:
     {
         float velocity = MovementSpeed * deltaTime;
         if (direction == FORWARD)
-            aPos += Front * velocity;
+            Position += Front * velocity;
         if (direction == BACKWARD)
-            aPos -= Front * velocity;
+            Position -= Front * velocity;
         if (direction == LEFT)
-            aPos -= Right * velocity;
+            Position -= Right * velocity;
         if (direction == RIGHT)
-            aPos += Right * velocity;
+            Position += Right * velocity;
     }
 
     // Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
