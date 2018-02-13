@@ -26,7 +26,7 @@ const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 720;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -36,6 +36,8 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 unsigned int planeVAO;
+
+int buffer = 0, n = 100;
 
 int main()
 {
@@ -205,15 +207,15 @@ int main()
 
     // lighting info
     // -------------
-    const unsigned int NR_LIGHTS = 100;
+    n = 100;
     std::vector<glm::vec3> lightPositions;
     std::vector<glm::vec3> lightColors;
     srand(13);
-    for (unsigned int i = 0; i < NR_LIGHTS; i++)
+    for (unsigned int i = 0; i < 200; i++)
     {
         // calculate slightly random offsets
         float xPos = ((rand() % 100) / 100.0) * 20.0 - 5;
-        float yPos = ((rand() % 100) / 100.0) * 4.0 - 2.0;
+        float yPos = ((rand() % 100) / 100.0) * 4.0 - 4.0;
         float zPos = ((rand() % 100) / 100.0) * 10.0 - 5;
         lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
         // also calculate random color
@@ -251,7 +253,7 @@ int main()
 
         // render
         // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 1. geometry pass: render scene's geometry/color data into gbuffer
@@ -266,7 +268,7 @@ int main()
         shaderGeometryPass.setMat4("view", view);
 
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(-5, -3, -5));
+        model = glm::translate(model, glm::vec3(-5, -5, -5));
         model = glm::scale(model, glm::vec3(0.05f));
         shaderGeometryPass.setMat4("model", model);
         glBindVertexArray(planeVAO);
@@ -294,24 +296,62 @@ int main()
         //glActiveTexture(GL_TEXTURE2);
         //glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
         // send light relevant uniforms
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
+//        for (unsigned int i = 0; i < lightPositions.size(); i++)
+//        {
+//            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
+//            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+//            // update attenuation parameters and calculate radius
+//            const float constant = 1.0; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
+//            const float linear = 0.7;
+//            const float quadratic = 1.8;
+//            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
+//            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
+//            // then calculate radius of light volume/sphere
+//            const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+//            float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+//            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
+//        }
+//        shaderLightingPass.setVec3("viewPos", camera.Position);
+//        // finally render quad
+//        renderQuad();
+//
+
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_ONE, GL_ONE);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+        shaderLightingPass.use();
+        shaderLightingPass.setMat4("projection", projection);
+        shaderLightingPass.setMat4("view", view);
+        for (unsigned int i = 0; i < n; i++)
         {
-            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
-            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
-            // update attenuation parameters and calculate radius
-            const float constant = 1.0; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
-            const float linear = 0.7;
-            const float quadratic = 1.8;
-            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
-            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
-            // then calculate radius of light volume/sphere
+            model = glm::mat4();
+            model = glm::translate(model, lightPositions[i]);
+            model = glm::scale(model, glm::vec3(1.0f));
+            const float constant = 1.0;
+            float linear = 2;
+            float quadratic = 5;
             const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
             float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
-            shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
+            model = glm::scale(model, glm::vec3(radius));
+            shaderLightingPass.setMat4("model", model);
+            shaderLightingPass.setVec3("Position", lightPositions[i]);
+            shaderLightingPass.setVec3("Color", lightColors[i]);
+            shaderLightingPass.setFloat("Linear", linear);
+            shaderLightingPass.setFloat("Quadratic", quadratic);
+            shaderLightingPass.setFloat("Radius", radius);
+            shaderLightingPass.setVec3("viewPos", camera.Position);
+            if (buffer == 0) {
+                renderCube();
+            }
         }
-        shaderLightingPass.setVec3("viewPos", camera.Position);
-        // finally render quad
-        renderQuad();
+        glCullFace(GL_BACK);
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
 
         // 2.5. copy content of geometry's depth buffer to default framebuffer's depth buffer
         // ----------------------------------------------------------------------------------
@@ -328,23 +368,32 @@ int main()
         shaderLightBox.use();
         shaderLightBox.setMat4("projection", projection);
         shaderLightBox.setMat4("view", view);
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
+        for (unsigned int i = 0; i < n; i++)
         {
             model = glm::mat4();
             model = glm::translate(model, lightPositions[i]);
             model = glm::scale(model, glm::vec3(0.125f));
             shaderLightBox.setMat4("model", model);
             shaderLightBox.setVec3("lightColor", lightColors[i]);
-            renderCube();
+            if (buffer == 0) {
+                renderCube();
+            }
+        }
+
+        if (buffer == 1) {
+            debugDepthQuad.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            renderQuad();
         }
 
 
-        debugDepthQuad.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        //if (isShadow) {
-            //renderQuad();
-        //}
+        if (buffer == 2) {
+            debugDepthQuad.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            renderQuad();
+        }
 
 
 
@@ -480,6 +529,20 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        buffer = 0;
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        buffer = 1;
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        buffer = 2;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        if (n <= 190) {
+            n += 3;
+        }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        if (n > 5) {
+            n -= 3;
+        }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
