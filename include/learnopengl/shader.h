@@ -14,6 +14,40 @@ public:
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
+    Shader(const char* computePath)
+    {
+        // 1. retrieve the vertex/fragment source code from filePath
+        std::string computeCode;
+        std::ifstream computeFile;
+        // ensure ifstream objects can throw exceptions:
+        computeFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+        try {
+            computeFile.open(computePath);
+            std::stringstream computeStream;
+            computeStream << computeFile.rdbuf();
+            computeFile.close();
+            computeCode = computeStream.str();
+        }
+        catch (std::ifstream::failure e)
+        {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+        }
+        const char* cShaderCode = computeCode.c_str();
+        unsigned int compute;
+        int success;
+        char infoLog[512];
+        compute = glCreateShader(GL_COMPUTE_SHADER);
+        glShaderSource(compute, 1, &cShaderCode, NULL);
+        glCompileShader(compute);
+        checkCompileErrors(compute, "COMPUTE");
+        ID = glCreateProgram();
+        glAttachShader(ID, compute);
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "PROGRAM");
+        // delete the shaders as they're linked into our program now and no longer necessery
+        glDeleteShader(compute);
+
+    }
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
     {
         // 1. retrieve the vertex/fragment source code from filePath
