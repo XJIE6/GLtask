@@ -16,47 +16,8 @@ uniform vec3 viewPos;
 
 uniform vec3 pointLightPos;
 
-vec4 Bilinear(sampler2D tex, vec2 texCoord, int texSize)
-{
-   vec2 trTexCoord = texCoord*texSize;
-   vec2 texf = floor(trTexCoord);
-   vec2 ratio = trTexCoord - texf;
-   vec2 opposite = 1.0 - ratio;
-   vec4 result = (texture(tex, texf/texSize) * opposite.x  + texture(tex, (texf+vec2(1, 0))/texSize)   * ratio.x) * opposite.y +
-                   (texture(tex, (texf+vec2(0, 1))/texSize) * opposite.x + texture(tex, (texf+vec2(1, 1))/texSize) * ratio.x) * ratio.y;
-   return result;
- }
-
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r; 
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = normalize(fs_in.Normal);
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    // check whether current frag pos is in shadow
-    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-
-
-    float bilinDepth = Bilinear(shadowMap, projCoords.xy, textureSize(shadowMap, 0).x).r;
-    float shadow = currentDepth - bias > bilinDepth  ? 1.0 : 0.0;
-    
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if(projCoords.z > 1.0)
-        shadow = 0.0;
-        
-    return shadow;
-}
-
 void main()
-{           
+{
     vec3 color = vec3(0.5);
     vec3 normal = normalize(fs_in.Normal);
     vec3 lightColor = vec3(0, 1, 0);
@@ -73,8 +34,69 @@ void main()
     vec3 plightDir = normalize(pointLightPos - fs_in.FragPos);
     float pdiff = max(dot(plightDir, normal), 0.0);
 
+    vec3 curpos = fs_in.FragPosLightSpace.xyz / fs_in.FragPosLightSpace.w;
+    // transform to [0,1] range
+    curpos = curpos * 0.5 + 0.5;
+
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
     // calculate shadow
-    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
+    vec2 txsz = vec2(1.0 / textureSize(shadowMap, 0));
+    vec2 p11 = floor(curpos.xy * textureSize(shadowMap, 0)) * txsz;
+    vec2 p12 = p11 + vec2(0, txsz.y);
+    vec2 p21 = p11 + vec2(txsz.x, 0);
+    vec2 p22 = p11 + txsz;
+
+    float sh11 = 0;
+    for (int i = -1; i < 2; i++) {
+         for (int j = -1; j < 2; j++) {
+             float d = texture(shadowMap, p11 + vec2(i, j) * txsz).r;
+             sh11 += curpos.z - bias > d ? 1.0 : 0.0;
+         }
+    }
+    sh11 /= 9;
+
+    float sh12 = 0;
+    for (int i = -1; i < 2; i++) {
+         for (int j = -1; j < 2; j++) {
+             float d = texture(shadowMap, p12 + vec2(i, j) * txsz).r;
+             sh12 += curpos.z - bias > d ? 1.0 : 0.0;
+         }
+    }
+    sh12 /= 9;
+
+    float sh21 = 0;
+    for (int i = -1; i < 2; i++) {
+         for (int j = -1; j < 2; j++) {
+             float d = texture(shadowMap, p21 + vec2(i, j) * txsz).r;
+             sh21 += curpos.z - bias > d ? 1.0 : 0.0;
+         }
+    }
+    sh21 /= 9;
+
+    float sh22 = 0;
+    for (int i = -1; i < 2; i++) {
+         for (int j = -1; j < 2; j++) {
+             float d = texture(shadowMap, p22 + vec2(i, j) * txsz).r;
+             sh22 += curpos.z - bias > d ? 1.0 : 0.0;
+         }
+    }
+    sh22 /= 9;
+
+
+    float shadow = 1 / txsz.x / txsz.y * (
+             sh11 * (p22.x - curpos.x) * (p22.y - curpos.y)
+           + sh12 * (p22.x - curpos.x) * (curpos.y - p11.y)
+           + sh21 * (curpos.x - p11.x) * (p22.y - curpos.y)
+           + sh22 * (curpos.x - p11.x) * (curpos.y - p11.y)
+    );
+
+    // float shadow = curpos.z - bias > texture(shadowMap, curpos.xy).r ? 1.0 : 0.0;
+    // float shadow = curpos.z - bias > (d11 + d22) / 2 ? 1.0 : 0.0;
+    // float shadow = sh11;
+
+    if(curpos.z > 1.0)
+        shadow = 0.0;
 
     // specular
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
